@@ -16,7 +16,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
-	empty "google.golang.org/protobuf/types/known/emptypb"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -188,9 +187,6 @@ func NewSession(c context.Context, sr *scout.Reporter, cr *rpc.ConnectRequest, s
 	// Must call SetManagerClient before calling daemon.Connect which tells the
 	// daemon to use the proxy.
 	svc.SetManagerClient(tmgr.managerClient)
-
-	// Tell daemon what it needs to know in order to establish outbound traffic to the cluster
-	oi := tmgr.getOutboundInfo(c)
 
 	// Collect data on how long connection time took
 	dlog.Debug(c, "Finished connecting to traffic manager")
