@@ -38,7 +38,6 @@ func Telepresence(ctx context.Context) *cobra.Command {
 		Args: perhapsLegacy,
 
 		Short:              "Connect your workstation to a Kubernetes cluster",
-		Long:               help,
 		RunE:               RunSubcommands,
 		SilenceErrors:      true, // main() will handle it after .ExecuteContext() returns
 		SilenceUsage:       true, // our FlagErrorFunc will handle it
@@ -46,6 +45,7 @@ func Telepresence(ctx context.Context) *cobra.Command {
 	}
 	rootCmd.SetContext(ctx)
 	cmdutils.WithRootCmdName(rootCmd)
+	rootCmd.Long = getHelp(ctx)
 	AddSubCommands(rootCmd)
 	rootCmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 		return errcat.User.New(err)

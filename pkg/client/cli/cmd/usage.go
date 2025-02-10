@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"context"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"os"
 	"strconv"
+	"strings"
+	"text/template"
 
 	"github.com/moby/term"
 	"github.com/spf13/cobra"
@@ -20,12 +24,12 @@ workstation to that cluster so that software running locally can communicate
 as if it executed remotely, inside the cluster. This is achieved using the
 command:
 
-telepresence connect
+{{ .rootCmdName }} connect
 
 Telepresence can also intercept traffic intended for a specific service in a
 cluster and redirect it to your local workstation:
 
-telepresence intercept <name of service>
+{{ .rootCmdName }} intercept <name of service>
 
 Telepresence uses background processes to manage the cluster session. One of
 the processes runs with superuser privileges because it modifies the network.
@@ -41,7 +45,7 @@ Aliases:
   {{.NameAndAliases}}{{end}}{{if .HasExample}}
 
 Examples:
-{{.Example}}{{end}}{{if .HasAvailableSubCommands}}
+{{.Example | injectRootCmdName }}{{end}}{{if .HasAvailableSubCommands}}
 
 Available Commands:{{range .Commands}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
@@ -108,6 +112,24 @@ func hasKubeFlags(cmd *cobra.Command) bool {
 	return yep
 }
 
+func injectRootCmdName(ctx context.Context, content string) (string, error) {
+	tpl, err := template.New("inject-root").Parse(content)
+	if err != nil {
+		return "", err
+	}
+
+	var builder strings.Builder
+	err = tpl.Execute(&builder, map[string]string{
+		"rootCmdName": cmdutils.GetRootCmdName(ctx),
+	})
+	return builder.String(), err
+}
+
+func getHelp(ctx context.Context) string {
+	v, _ := injectRootCmdName(ctx, help)
+	return v
+}
+
 func addUsageTemplate(cmd *cobra.Command) {
 	cobra.AddTemplateFunc("globalFlags", func(cmd *cobra.Command) *pflag.FlagSet { return global.Flags(hasKubeFlags(cmd)) })
 	cobra.AddTemplateFunc("flags", func(cmd *cobra.Command) *pflag.FlagSet {
@@ -137,6 +159,13 @@ func addUsageTemplate(cmd *cobra.Command) {
 			}
 		}
 		return flags.FlagUsagesWrapped(cols)
+	})
+	cobra.AddTemplateFunc("injectRootCmdName", func(example string) string {
+		v, err := injectRootCmdName(cmd.Context(), example)
+		if err != nil {
+			return example
+		}
+		return v
 	})
 	cobra.AddTemplateFunc("getDocumentationURL", func() string {
 		return CLIHelpDocumentationURL

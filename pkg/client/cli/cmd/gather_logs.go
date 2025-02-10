@@ -48,22 +48,22 @@ and export them into a zip file. Useful if you are opening a Github issue or ask
 someone to help you debug Telepresence.`,
 		Example: `Here are a few examples of how you can use this command:
 # Get all logs and export to a given file
-telepresence gather-logs -o /tmp/telepresence_logs.zip
+{{ .rootCmdName }} gather-logs -o /tmp/telepresence_logs.zip
 
 # Get all logs and pod yaml manifests for components in the kubernetes cluster
-telepresence gather-logs -o /tmp/telepresence_logs.zip --get-pod-yaml
+{{ .rootCmdName }} gather-logs -o /tmp/telepresence_logs.zip --get-pod-yaml
 
 # Get all logs for the daemons only
-telepresence gather-logs --traffic-agents=None --traffic-manager=False
+{{ .rootCmdName }} gather-logs --traffic-agents=None --traffic-manager=False
 
 # Get all logs for pods that have "echo-easy" in the name, useful if you have multiple replicas
-telepresence gather-logs --traffic-manager=False --traffic-agents=echo-easy
+{{ .rootCmdName }} gather-logs --traffic-manager=False --traffic-agents=echo-easy
 
 # Get all logs for a specific pod
-telepresence gather-logs --traffic-manager=False --traffic-agents=echo-easy-6848967857-tw4jw
+{{ .rootCmdName }} gather-logs --traffic-manager=False --traffic-agents=echo-easy-6848967857-tw4jw
 
 # Get logs from everything except the daemons
-telepresence gather-logs --daemons=None
+{{ .rootCmdName }} gather-logs --daemons=None
 `,
 
 		RunE: gl.gatherLogs,
