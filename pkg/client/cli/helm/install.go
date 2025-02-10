@@ -22,6 +22,7 @@ import (
 	"github.com/datawire/k8sapi/pkg/k8sapi"
 	"github.com/telepresenceio/telepresence/rpc/v2/connector"
 	"github.com/telepresenceio/telepresence/v2/pkg/client"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/userd/k8s"
 	"github.com/telepresenceio/telepresence/v2/pkg/dos"
 	"github.com/telepresenceio/telepresence/v2/pkg/errcat"
@@ -399,7 +400,7 @@ func ensureIsInstalled(
 
 	switch {
 	case existing == nil && req.Type == Upgrade: // fresh install
-		err = errcat.User.Newf("%s is not installed, use 'telepresence helm install' to install it", releaseName)
+		err = errcat.User.Newf("%s is not installed, use '%s helm install' to install it", releaseName, cmdutils.GetRootCmdName(ctx))
 	case existing == nil:
 		dlog.Infof(ctx, "ensureIsInstalled(namespace=%q): performing fresh install...", namespace)
 		err = installNew(ctx, chrt, helmConfig, releaseName, namespace, req, vals)
@@ -409,8 +410,8 @@ func ensureIsInstalled(
 		err = upgradeExisting(ctx, releaseVer(existing), chrt, helmConfig, releaseName, namespace, req, vals)
 	default:
 		err = errcat.User.Newf(
-			"%s version %q is already installed, use 'telepresence helm upgrade' instead to replace it",
-			releaseName, releaseVer(existing))
+			"%s version %q is already installed, use '%s helm upgrade' instead to replace it",
+			releaseName, releaseVer(existing), cmdutils.GetRootCmdName(ctx))
 	}
 	return err
 }

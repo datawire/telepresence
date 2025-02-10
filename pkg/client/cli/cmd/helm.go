@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/daemon"
+	cliflags "github.com/telepresenceio/telepresence/v2/pkg/client/cli/flags"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/helm"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/scout"
 )
@@ -44,6 +47,9 @@ func helmInstall() *cobra.Command {
 		Args:  cobra.NoArgs,
 		Short: "Install telepresence traffic manager",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			rootCmdName := cmdutils.GetRootCmdName(cmd.Context())
+			cliflags.DeprecationIfChanged(cmd, "upgrade",
+				fmt.Sprintf(`use "%s helm upgrade" instead of "%s helm install --upgrade"`, rootCmdName, rootCmdName))
 			if upgrade {
 				ha.Request.Type = helm.Upgrade
 			}
@@ -59,7 +65,6 @@ func helmInstall() *cobra.Command {
 	ha.addCRDsFlags(flags)
 	uf := flags.Lookup("upgrade")
 	uf.Hidden = true
-	uf.Deprecated = `Use "telepresence helm upgrade" instead of "telepresence helm install --upgrade"`
 	ha.rq = daemon.InitRequest(cmd)
 	return cmd
 }

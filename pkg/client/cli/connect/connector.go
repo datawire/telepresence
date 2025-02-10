@@ -26,6 +26,7 @@ import (
 	"github.com/telepresenceio/telepresence/rpc/v2/connector"
 	"github.com/telepresenceio/telepresence/v2/pkg/authenticator/patcher"
 	"github.com/telepresenceio/telepresence/v2/pkg/client"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/daemon"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/output"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/docker"
@@ -422,9 +423,10 @@ func connectSession(ctx context.Context, useLine string, userD daemon.UserClient
 		if strings.HasPrefix(cv.Name, "OSS ") && !strings.HasPrefix(mv.Name, "OSS ") {
 			ioutil.Printf(output.Info(ctx),
 				"You are using the OSS client %s to connect to an enterprise traffic manager %s. Please consider installing an\n"+
-					"enterprise client from getambassador.io, or use \"telepresence helm install\" to install an OSS traffic-manager\n",
+					"enterprise client from getambassador.io, or use \"%s helm install\" to install an OSS traffic-manager\n",
 				cv.Version,
-				mv.Version)
+				mv.Version,
+				cmdutils.GetRootCmdName(ctx))
 		}
 		return nil
 	}
@@ -463,9 +465,9 @@ func connectSession(ctx context.Context, useLine string, userD daemon.UserClient
 		}
 		if required {
 			ioutil.Printf(output.Info(ctx),
-				`Warning: You are executing the %q command without a preceding "telepresence connect", causing an implicit `+
+				`Warning: You are executing the %q command without a preceding "%s connect", causing an implicit `+
 					"connect to take place. The implicit connect behavior is deprecated and will be removed in a future release.\n",
-				useLine)
+				useLine, cmdutils.GetRootCmdName(ctx))
 		}
 	}
 

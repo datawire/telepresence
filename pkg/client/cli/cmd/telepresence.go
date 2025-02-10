@@ -10,6 +10,7 @@ import (
 
 	"github.com/datawire/dlib/dlog"
 	"github.com/telepresenceio/telepresence/v2/pkg/client"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/daemon"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/global"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/docker/kubeauth"
@@ -44,6 +45,7 @@ func Telepresence(ctx context.Context) *cobra.Command {
 		DisableFlagParsing: true, // Bc of the legacyCommand parsing, see legacy_command.go
 	}
 	rootCmd.SetContext(ctx)
+	cmdutils.WithRootCmdName(rootCmd)
 	AddSubCommands(rootCmd)
 	rootCmd.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 		return errcat.User.New(err)
@@ -64,6 +66,7 @@ func TelepresenceDaemon(ctx context.Context) *cobra.Command {
 		SilenceUsage:  true, // our FlagErrorFunc will handle it
 	}
 	cmd.SetContext(ctx)
+	cmdutils.WithRootCmdName(cmd)
 	AddSubCommands(cmd)
 	return cmd
 }

@@ -49,6 +49,7 @@ import (
 	authGrpc "github.com/telepresenceio/telepresence/v2/pkg/authenticator/grpc"
 	"github.com/telepresenceio/telepresence/v2/pkg/authenticator/patcher"
 	"github.com/telepresenceio/telepresence/v2/pkg/client"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/daemon"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/k8sclient"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/rootd"
@@ -519,8 +520,9 @@ func CheckTrafficManagerService(ctx context.Context, namespace string) error {
 		se := &k8serrors.StatusError{}
 		if errors.As(err, &se) {
 			if se.Status().Code == http.StatusNotFound {
-				msg = "traffic manager not found, if it is not installed, please run 'telepresence helm install'. " +
-					"If it is installed, try connecting with a --manager-namespace to point telepresence to the namespace it's installed in."
+				msg = fmt.Sprintf("traffic manager not found, if it is not installed, please run '%s helm install'. "+
+					"If it is installed, try connecting with a --manager-namespace to point telepresence to the namespace it's installed in.",
+					cmdutils.GetRootCmdName(ctx))
 			}
 		}
 		return errcat.User.New(msg)

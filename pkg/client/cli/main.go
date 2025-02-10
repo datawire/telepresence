@@ -9,6 +9,7 @@ import (
 
 	"github.com/telepresenceio/telepresence/v2/pkg/client"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmd"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/connect"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/output"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/logging"
@@ -80,10 +81,10 @@ func Main(ctx context.Context) {
 					// If the user gets here, it might be an actual bug that they found, so
 					// point them to the `gather-logs` command in case they want to open an
 					// issue.
-					fmt.Fprintln(cmd.ErrOrStderr(), "If you think you have encountered a bug"+
-						", please run `telepresence gather-logs` and attach the "+
+					fmt.Fprintln(cmd.ErrOrStderr(), fmt.Sprintf("If you think you have encountered a bug"+
+						", please run `%s gather-logs` and attach the "+
 						"telepresence_logs.zip to your github issue or create a new one: "+
-						"https://github.com/telepresenceio/telepresence/issues/new?template=Bug_report.md .")
+						"https://github.com/telepresenceio/telepresence/issues/new?template=Bug_report.md .", cmdutils.GetRootCmdName(ctx)))
 				}
 			}
 			os.Exit(1)

@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/spf13/cobra"
 
 	"github.com/telepresenceio/telepresence/rpc/v2/connector"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/ann"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/connect"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/daemon"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/helm"
@@ -63,7 +65,7 @@ func (u *uninstallCommand) run(cmd *cobra.Command, args []string) error {
 			Request: helm.Request{Type: helm.Uninstall},
 			rq:      daemon.InitRequest(cmd),
 		}
-		ioutil.Println(cmd.OutOrStderr(), "--everything is deprecated. Please use telepresence helm uninstall")
+		ioutil.Println(cmd.OutOrStderr(), fmt.Sprintf("--everything is deprecated. Please use %s helm uninstall", cmdutils.GetRootCmdName(cmd.Context())))
 		return ha.run(cmd, args)
 	}
 	cmd.Annotations = map[string]string{

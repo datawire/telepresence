@@ -1,6 +1,7 @@
 package intercept
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/datawire/dlib/dlog"
 	"github.com/telepresenceio/telepresence/rpc/v2/connector"
 	"github.com/telepresenceio/telepresence/v2/pkg/client"
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/connect"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/daemon"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/flags"
@@ -126,8 +128,8 @@ func (a *Command) AddFlags(cmd *cobra.Command) {
 }
 
 func (a *Command) Validate(cmd *cobra.Command, positional []string) error {
-	flags.DeprecationIfChanged(cmd, "local-only", "use telepresence connect to set the namespace")
-	flags.DeprecationIfChanged(cmd, "namespace", "use telepresence connect to set the namespace")
+	flags.DeprecationIfChanged(cmd, "local-only", fmt.Sprintf("use %s connect to set the namespace", cmdutils.GetRootCmdName(cmd.Context())))
+	flags.DeprecationIfChanged(cmd, "namespace", fmt.Sprintf("use %s connect to set the namespace", cmdutils.GetRootCmdName(cmd.Context())))
 	if len(positional) > 1 && cmd.Flags().ArgsLenAtDash() != 1 {
 		return errcat.User.New("commands to be run with intercept must come after options")
 	}

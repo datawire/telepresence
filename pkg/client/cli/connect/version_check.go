@@ -6,6 +6,7 @@ import (
 
 	empty "google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/daemon"
 	"github.com/telepresenceio/telepresence/v2/pkg/errcat"
 	"github.com/telepresenceio/telepresence/v2/pkg/version"
@@ -35,17 +36,17 @@ func versionCheck(ctx context.Context, daemonBinary string) error {
 	}
 	if !version.Structured.EQ(uv) {
 		// OSS Version mismatch. We never allow this
-		return errcat.User.Newf("version mismatch. Client %s != user daemon %s, please run 'telepresence quit -s' and reconnect",
-			version.Version, uv)
+		return errcat.User.Newf("version mismatch. Client %s != user daemon %s, please run '%s quit -s' and reconnect",
+			version.Version, uv, cmdutils.GetRootCmdName(ctx))
 	}
 	if daemonBinary != "" && userD.Executable() != daemonBinary {
-		return errcat.User.Newf("executable mismatch. Connector using %s, configured to use %s, please run 'telepresence quit -s' and reconnect",
-			userD.Executable(), daemonBinary)
+		return errcat.User.Newf("executable mismatch. Connector using %s, configured to use %s, please run '%s quit -s' and reconnect",
+			userD.Executable(), daemonBinary, cmdutils.GetRootCmdName(ctx))
 	}
 	vr, err := userD.RootDaemonVersion(ctx, &empty.Empty{})
 	if err == nil && version.Version != vr.Version {
-		return errcat.User.Newf("version mismatch. Client %s != Root Daemon %s, please run 'telepresence quit -s' and reconnect",
-			version.Version, vr.Version)
+		return errcat.User.Newf("version mismatch. Client %s != Root Daemon %s, please run '%s quit -s' and reconnect",
+			version.Version, vr.Version, cmdutils.GetRootCmdName(ctx))
 	}
 	return nil
 }
