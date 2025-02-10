@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
+	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/cmdutils"
 	"github.com/telepresenceio/telepresence/v2/pkg/client/cli/global"
 	"github.com/telepresenceio/telepresence/v2/pkg/dos"
 	"github.com/telepresenceio/telepresence/v2/pkg/errcat"
@@ -90,14 +91,7 @@ func DefaultYAML(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
-	rootCmd := cmd
-	for {
-		p := rootCmd.Parent()
-		if p == nil {
-			break
-		}
-		rootCmd = p
-	}
+	rootCmd := cmdutils.GetRootCmdFunc(cmd)
 	if fmt == formatDefault {
 		if err = rootCmd.PersistentFlags().Set(global.FlagOutput, "yaml"); err != nil {
 			return err
