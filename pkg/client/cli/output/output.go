@@ -104,8 +104,12 @@ func DefaultYAML(cmd *cobra.Command, _ []string) error {
 // output, and return a boolean indicating if formatted output was printed. The
 // result of the execution is provided in the second return value.
 func Execute(cmd *cobra.Command) (*cobra.Command, bool, error) {
-	setFormat(cmd)
+	SetFormat(cmd)
 	cmd, err := cmd.ExecuteC()
+	return HandleOutput(cmd, err)
+}
+
+func HandleOutput(cmd *cobra.Command, err error) (*cobra.Command, bool, error) {
 	o, ok := cmd.OutOrStdout().(*output)
 	if !ok {
 		return cmd, false, err
@@ -155,10 +159,10 @@ func Execute(cmd *cobra.Command) (*cobra.Command, bool, error) {
 	return cmd, true, err
 }
 
-// setFormat assigns a cobra.Command.PersistentPreRunE function that all sub commands will inherit. This
+// SetFormat assigns a cobra.Command.PersistentPreRunE function that all sub commands will inherit. This
 // function checks if the global `--output` flag was used, and if so, ensures that formatted output is
 // initialized.
-func setFormat(cmd *cobra.Command) {
+func SetFormat(cmd *cobra.Command) {
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		fmt, err := validateFlag(cmd)
 		if err != nil {
