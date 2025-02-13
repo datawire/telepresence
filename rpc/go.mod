@@ -1,6 +1,6 @@
 module github.com/telepresenceio/telepresence/rpc/v2
 
-go 1.23.1
+go 1.23.6
 
 require (
 	google.golang.org/grpc v1.66.2

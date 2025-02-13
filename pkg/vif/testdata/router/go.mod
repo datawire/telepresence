@@ -1,6 +1,6 @@
 module local
 
-go 1.23.1
+go 1.23.6
 
 require (
 	github.com/datawire/dlib v1.3.1
