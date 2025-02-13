@@ -197,9 +197,9 @@ func (lc *legacyCommand) genTPCommand() (string, error) {
 	return strings.Join(cmdSlice, " "), nil
 }
 
-// translateLegacy tries to detect if a legacy Telepresence command was used
+// TranslateLegacy tries to detect if a legacy Telepresence command was used
 // and constructs a Telepresence command from that.
-func translateLegacy(args []string) (string, string, *legacyCommand, error) {
+func TranslateLegacy(args []string) (string, string, *legacyCommand, error) {
 	lc := parseLegacy(args)
 	tpCmd, err := lc.genTPCommand()
 	if err != nil {
@@ -247,7 +247,7 @@ func checkLegacy(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
 		return nil
 	}
-	tpCmd, msg, lc, err := translateLegacy(args)
+	tpCmd, msg, lc, err := TranslateLegacy(args)
 	if err != nil {
 		return err
 	}
