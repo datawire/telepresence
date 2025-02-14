@@ -38,9 +38,11 @@ type client struct {
 	session         *manager.SessionInfo
 	info            *manager.AgentPodInfo
 	ready           chan error
+	remove          func()
 	cancelClient    context.CancelFunc
 	cancelDialWatch context.CancelFunc
 	tunnelCount     int32
+	infant          bool
 }
 
 func (ac *client) String() string {
@@ -51,15 +53,35 @@ func (ac *client) String() string {
 	return fmt.Sprintf("%s.%s:%d", ai.PodName, ai.Namespace, ai.ApiPort)
 }
 
-func (ac *client) Tunnel(ctx context.Context, opts ...grpc.CallOption) (tunnel.Client, error) {
+func (ac *client) ensureConnect(ctx context.Context) error {
+	ac.Lock()
+	infant := ac.infant
+	if infant {
+		ac.infant = false
+	}
+	ac.Unlock()
+	if infant {
+		go ac.connect(ctx, func() {
+			ac.remove()
+		})
+	}
 	select {
 	case err, ok := <-ac.ready:
 		if ok {
-			return nil, err
+			// Put error back on channel in case this Tunnel is used again before it's deleted
+			ac.ready <- err
+			return err
 		}
 		// ready channel is closed. We are ready to go.
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
+	}
+	return nil
+}
+
+func (ac *client) Tunnel(ctx context.Context, opts ...grpc.CallOption) (tunnel.Client, error) {
+	if err := ac.ensureConnect(ctx); err != nil {
+		return nil, err
 	}
 	tc, err := ac.cli.Tunnel(ctx, opts...)
 	if err != nil {
@@ -96,7 +118,15 @@ func (ac *client) connect(ctx context.Context, deleteMe func()) {
 	ac.Lock()
 	ac.cli = cli
 	ac.cancelClient = func() {
-		conn.Close()
+		// Need to run this in a separate thread to avoid deadlock.
+		go func() {
+			ac.Lock()
+			conn.Close()
+			ac.cancelClient = nil
+			ac.cli = nil
+			ac.infant = true
+			ac.Unlock()
+		}()
 	}
 	intercepted := ac.info.Intercepted
 	ac.Unlock()
@@ -108,11 +138,11 @@ func (ac *client) connect(ctx context.Context, deleteMe func()) {
 	}
 }
 
-func (ac *client) busy() bool {
+func (ac *client) dormant() bool {
 	ac.Lock()
-	bzy := ac.cli == nil || ac.info.Intercepted || atomic.LoadInt32(&ac.tunnelCount) > 0
+	dormant := !(ac.infant || ac.cli == nil || ac.info.Intercepted) && atomic.LoadInt32(&ac.tunnelCount) == 0
 	ac.Unlock()
-	return bzy
+	return dormant
 }
 
 func (ac *client) intercepted() bool {
@@ -122,17 +152,21 @@ func (ac *client) intercepted() bool {
 	return ret
 }
 
-func (ac *client) cancel() {
+func (ac *client) cancel() bool {
 	ac.Lock()
 	cc := ac.cancelClient
 	cdw := ac.cancelDialWatch
 	ac.Unlock()
+	didCancel := false
 	if cc != nil {
+		didCancel = true
 		cc()
 	}
 	if cdw != nil {
+		didCancel = true
 		cdw()
 	}
+	return didCancel
 }
 
 func (ac *client) setIntercepted(ctx context.Context, k string, status bool) {
@@ -166,14 +200,8 @@ func (ac *client) setIntercepted(ctx context.Context, k string, status bool) {
 
 func (ac *client) startDialWatcher(ctx context.Context) error {
 	// Not called from the startup go routine, so wait for that routine to finish
-	select {
-	case err, ok := <-ac.ready:
-		if ok {
-			return err
-		}
-		// ready channel is closed. We are ready to go.
-	case <-ctx.Done():
-		return ctx.Err()
+	if err := ac.ensureConnect(ctx); err != nil {
+		return err
 	}
 	return ac.startDialWatcherReady(ctx)
 }
@@ -306,11 +334,15 @@ func (s *clients) hasWaiterFor(info *manager.AgentPodInfo) bool {
 func (s *clients) WatchAgentPods(ctx context.Context, rmc manager.ManagerClient) error {
 	dlog.Debug(ctx, "WatchAgentPods starting")
 	defer func() {
-		dlog.Debugf(ctx, "WatchAgentPods ending with %d clients still active", s.clients.Size())
+		activeCount := 0
+
 		s.clients.Range(func(_ string, ac *client) bool {
-			ac.cancel()
+			if ac.cancel() {
+				activeCount++
+			}
 			return true
 		})
+		dlog.Debugf(ctx, "WatchAgentPods ending with %d clients still active", activeCount)
 		s.disabled.Store(true)
 	}()
 	backoff := 100 * time.Millisecond
@@ -501,41 +533,35 @@ func (s *clients) updateClients(ctx context.Context, ais []*manager.AgentPodInfo
 			ac := &client{
 				ready:   make(chan error),
 				session: s.session,
-				info:    ai,
+				remove: func() {
+					deleteClient(k)
+				},
+				info:   ai,
+				infant: true,
 			}
-			go ac.connect(ctx, func() {
-				deleteClient(k)
-			})
+			dlog.Debugf(ctx, "Adding agent %s (%s)", k, net.IP(ai.PodIp))
 			return ac, false
 		})
 	}
 
-	// Add clients for newly arrived intercepts
+	// Add clients for newly arrived agents.
 	for k, ai := range aim {
-		if ai.Intercepted || s.isProxyVIA(ai) || s.hasWaiterFor(ai) {
-			addClient(k, ai)
-		}
+		addClient(k, ai)
 	}
 
-	// Terminate all non-intercepting idle agents except the last one.
+	// Terminate all dormant agents except the last one.
+	dormantCount := 0
 	s.clients.Range(func(k string, ac *client) bool {
-		if s.clients.Size() <= 1 {
-			return false
-		}
-		if !ac.busy() && !s.isProxyVIA(ac.info) && !s.hasWaiterFor(ac.info) {
-			deleteClient(k)
+		if ac.dormant() && !s.isProxyVIA(ac.info) && !s.hasWaiterFor(ac.info) {
+			dormantCount++
+			if dormantCount > 1 {
+				ac.cancel()
+			}
 		}
 		return true
 	})
-
-	// Ensure that we have at least one client (if at least one agent exists)
-	if s.clients.Size() == 0 && len(aim) > 0 {
-		var ai *manager.AgentPodInfo
-		for _, ai = range aim {
-			break
-		}
-		k := ai.PodName + "." + ai.Namespace
-		addClient(k, ai)
+	if dormantCount > 1 {
+		dlog.Debugf(ctx, "Cancelled %d dormant clients", dormantCount-1)
 	}
 	return nil
 }
