@@ -197,6 +197,8 @@ type Timeouts struct {
 	PrivateFtpReadWrite time.Duration `json:"ftpReadWrite" yaml:"ftpReadWrite"`
 	// PrivateFtpShutdown max time to wait for the fuseftp client to complete pending operations before forcing termination.
 	PrivateFtpShutdown time.Duration `json:"ftpShutdown" yaml:"ftpShutdown"`
+	// PrivateRootDaemonConnect is how long to wait for a connection to the root daemon to be established
+	PrivateRootDaemonConnect time.Duration `json:"rootDaemonConnect" yaml:"rootDaemonConnect"`
 }
 
 type TimeoutID int
@@ -213,6 +215,7 @@ const (
 	TimeoutTrafficManagerConnect
 	TimeoutFtpReadWrite
 	TimeoutFtpShutdown
+	TimeoutRootDaemonConnect
 )
 
 type timeoutContext struct {
@@ -259,6 +262,8 @@ func (t *Timeouts) Get(timeoutID TimeoutID) time.Duration {
 		timeoutVal = t.PrivateFtpReadWrite
 	case TimeoutFtpShutdown:
 		timeoutVal = t.PrivateFtpShutdown
+	case TimeoutRootDaemonConnect:
+		timeoutVal = t.PrivateRootDaemonConnect
 	default:
 		panic("should not happen")
 	}
@@ -319,6 +324,9 @@ func (e timeoutError) Error() string {
 	case TimeoutFtpShutdown:
 		yamlName = "ftpShutdown"
 		humanName = "FTP client shutdown grace period"
+	case TimeoutRootDaemonConnect:
+		yamlName = "rootDaemonConnect"
+		humanName = "root daemon connect"
 	default:
 		panic("should not happen")
 	}
@@ -377,6 +385,8 @@ func (t *Timeouts) UnmarshalYAML(node *yaml.Node) (err error) {
 			dp = &t.PrivateFtpReadWrite
 		case "ftpShutdown":
 			dp = &t.PrivateFtpShutdown
+		case "rootDaemonConnect":
+			dp = &t.PrivateRootDaemonConnect
 		default:
 			logrus.Warn(WithLoc(fmt.Sprintf(`unknown key "timeouts.%s"`, kv), ms[i]))
 			continue
@@ -413,6 +423,7 @@ const (
 	defaultTimeoutsTrafficManagerConnect = 60 * time.Second
 	defaultTimeoutsFtpReadWrite          = 1 * time.Minute
 	defaultTimeoutsFtpShutdown           = 2 * time.Minute
+	defaultTimeoutsRootDaemonConnect     = 5 * time.Minute
 )
 
 var defaultTimeouts = Timeouts{ //nolint:gochecknoglobals // constant
@@ -427,6 +438,7 @@ var defaultTimeouts = Timeouts{ //nolint:gochecknoglobals // constant
 	PrivateTrafficManagerConnect: defaultTimeoutsTrafficManagerConnect,
 	PrivateFtpReadWrite:          defaultTimeoutsFtpReadWrite,
 	PrivateFtpShutdown:           defaultTimeoutsFtpShutdown,
+	PrivateRootDaemonConnect:     defaultTimeoutsRootDaemonConnect,
 }
 
 // IsZero controls whether this element will be included in marshalled output.
@@ -470,6 +482,9 @@ func (t Timeouts) MarshalYAML() (any, error) {
 	if t.PrivateFtpShutdown != defaultTimeoutsFtpShutdown {
 		tm["ftpShutdown"] = t.PrivateFtpShutdown.String()
 	}
+	if t.PrivateRootDaemonConnect != defaultTimeoutsRootDaemonConnect {
+		tm["rootDaemonConnect"] = t.PrivateRootDaemonConnect.String()
+	}
 	return tm, nil
 }
 
@@ -507,6 +522,9 @@ func (t *Timeouts) merge(o *Timeouts) {
 	}
 	if o.PrivateFtpShutdown != defaultTimeoutsFtpShutdown {
 		t.PrivateFtpShutdown = o.PrivateFtpShutdown
+	}
+	if o.PrivateRootDaemonConnect != defaultTimeoutsRootDaemonConnect {
+		t.PrivateRootDaemonConnect = o.PrivateRootDaemonConnect
 	}
 }
 

@@ -1147,7 +1147,7 @@ func (s *session) connectRootDaemon(ctx context.Context, oi *rootdRpc.OutboundIn
 
 		for attempt := 1; ; attempt++ {
 			var rootStatus *rootdRpc.DaemonStatus
-			tCtx, tCancel := context.WithTimeout(ctx, 15*time.Second)
+			tCtx, tCancel := client.GetConfig(ctx).Timeouts().TimeoutContext(ctx, client.TimeoutRootDaemonConnect)
 			rootStatus, err = rd.Connect(tCtx, oi)
 			tCancel()
 			if err != nil {
