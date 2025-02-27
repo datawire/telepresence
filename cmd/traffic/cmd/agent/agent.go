@@ -204,6 +204,7 @@ func sidecar(ctx context.Context, s State, info *rpc.AgentInfo) error {
 func TalkToManagerLoop(ctx context.Context, s State, info *rpc.AgentInfo) {
 	ac := s.AgentConfig()
 	gRPCAddress := fmt.Sprintf("%s:%v", ac.ManagerHost, ac.ManagerPort)
+	dlog.Debugf(ctx, "Connecting to manager at address: %s", gRPCAddress)
 
 	// Don't reconnect more than once every five seconds
 	ticker := time.NewTicker(5 * time.Second)

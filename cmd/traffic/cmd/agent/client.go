@@ -57,6 +57,7 @@ func TalkToManager(ctx context.Context, address string, info *rpc.AgentInfo, sta
 		return err
 	}
 	defer conn.Close()
+	dlog.Debugf(ctx, "gRPC connection established: %+v", conn)
 
 	manager := rpc.NewManagerClient(conn)
 	if NewExtendedManagerClient != nil {
@@ -76,6 +77,7 @@ func TalkToManager(ctx context.Context, address string, info *rpc.AgentInfo, sta
 	}
 
 	session, err := manager.ArriveAsAgent(ctx, info)
+	dlog.Debugf(ctx, "Arrived as agent: %+v", session)
 	if err != nil {
 		return err
 	}
